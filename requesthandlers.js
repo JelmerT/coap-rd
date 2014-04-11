@@ -28,6 +28,13 @@
 
 const url = require('url');
 
+function root(response,request) {
+  console.log("Request handler 'root' was called.");
+
+  response.statusCode = '404'; //not found
+  response.end();
+}
+
 function core(response,request) {
   console.log("Request handler 'core' was called.");
     var parameter = url.parse(request.url, true).query;
@@ -56,10 +63,10 @@ function core(response,request) {
               response.write('</rd>;rt="core.rd",</rd-lookup>;rt="core.rd-lookup",</rd-group>;rt="core.rd-group"');
               break;
             default:
-              response.statusCode = '404';
+              response.statusCode = '404'; //not found
           }
         }else{
-              response.statusCode = '404';
+              response.statusCode = '404'; //not found
         }
 
         response.end();

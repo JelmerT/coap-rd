@@ -32,7 +32,7 @@ const coap        = require('coap')
     , server      = coap.createServer()
 
 var handle = {}
-handle["/"] = requestHandlers.start;
+handle["/"] = requestHandlers.root;
 handle["/.well-known/core"] = requestHandlers.core;
 handle["/rd"] = requestHandlers.rd;
 handle["/rd-lookup"] = requestHandlers.rdlookup;
