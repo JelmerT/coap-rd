@@ -26,10 +26,11 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-const coap        = require('coap')
-    , url         = require('url')
+const coap            = require('coap')
+    , url             = require('url')
     , requestHandlers = require("./requestHandlers")
-    , server      = coap.createServer()
+    , server          = coap.createServer()
+    , S               = require('string')
 
 var handle = {}
 handle["/"] = requestHandlers.root;
@@ -40,9 +41,15 @@ handle["/rd-group"] = requestHandlers.rdgroup;
 
 function route(handle, pathname, response, request) {
   console.log("About to route a request for " + pathname);
+  //first look if there is a requesthandler for the path
   if (typeof handle[pathname] === 'function') {
     handle[pathname](response, request);
-  } else {
+  //no handler, are we looking for a resource entry in db?
+  } else if(S(pathname).startsWith('/rd/')){
+    console.log("/rd/ found, searching db")//search db
+    requestHandlers.edit(response, request, pathname);
+
+  }else{
     console.log("No request handler found for " + pathname);
     response.statusCode = '404';
     response.end();
