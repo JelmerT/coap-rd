@@ -1,42 +1,24 @@
 /*  Copyright (c) 2014, Jelmer Tiete.
  *  All rights reserved.
  *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *  1. Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *  3. The name of the author may not be used to endorse or promote
- *     products derived from this software without specific prior
- *     written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
- *  OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- *  ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
- *  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- *  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- *  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * coap-rd is licensed under an MIT +no-false-attribs license.
+ * All rights not explicitly granted in the MIT license are reserved.
+ * See the included LICENSE file for more details.
  */
 
-const   url     = require('url')
-      , level   = require('level')
-      , ttl     = require('level-ttl')
-      , shortId = require('shortid')
-      , S       = require('string')
+const   url           = require('url')
+      , level         = require('level')
+      , ttl           = require('level-ttl')
+      , shortId       = require('shortid')
+      , S             = require('string')
+      , InvertedIndex = require('level-inverted-index')
 
 // The default time to live of a db entry
 var DEFAULT_TTL = (60 * 60 * 24)
 
 //    This will create or open the underlying LevelDB store + ttl.
 var db = ttl(level('./db', { valueEncoding: 'json' }))
+//var indexDb = InvertedIndex(db, 'index')
 
 function root(response,request) {
   console.log("Request handler 'root' was called.");
@@ -47,45 +29,45 @@ function root(response,request) {
 
 function core(response,request) {
   console.log("Request handler 'core' was called.");
-    var parameter = url.parse(request.url, true).query;
-    switch (request.method){
-      case 'GET':
-        if(parameter.rt){
-          switch (parameter.rt){  //resource type
-            case 'core.rd':
-              response.statusCode = '205';
-              response.setOption('Content-Format','application/link-format');
-              response.write('</rd>;rt="core.rd"');
-              break;
-            case 'core.rd-group':
-              response.statusCode = '205';
-              response.setOption('Content-Format','application/link-format');
-              response.write('</rd-group>;rt="core.rd-group"');
-              break;
-            case 'core.rd-lookup':
-              response.statusCode = '205';
-              response.setOption('Content-Format','application/link-format');
-              response.write('</rd-lookup>;rt="core.rd-lookup"');
-              break;
-            case 'core.rd*':
-              response.statusCode = '205';
-              response.setOption('Content-Format','application/link-format');
-              response.write('</rd>;rt="core.rd",</rd-lookup>;rt="core.rd-lookup",</rd-group>;rt="core.rd-group"');
-              break;
-            default:
-              response.statusCode = '402'; //bad option
-          }
-        }else{
-              response.statusCode = '404'; //not found
+  var parameter = url.parse(request.url, true).query;
+  switch (request.method){
+    case 'GET':
+      if(parameter.rt){
+        switch (parameter.rt){  //resource type
+          case 'core.rd':
+            response.statusCode = '205';
+            response.setOption('Content-Format','application/link-format');
+            response.write('</rd>;rt="core.rd"');
+            break;
+          case 'core.rd-group':
+            response.statusCode = '205';
+            response.setOption('Content-Format','application/link-format');
+            response.write('</rd-group>;rt="core.rd-group"');
+            break;
+          case 'core.rd-lookup':
+            response.statusCode = '205';
+            response.setOption('Content-Format','application/link-format');
+            response.write('</rd-lookup>;rt="core.rd-lookup"');
+            break;
+          case 'core.rd*':
+            response.statusCode = '205';
+            response.setOption('Content-Format','application/link-format');
+            response.write('</rd>;rt="core.rd",</rd-lookup>;rt="core.rd-lookup",</rd-group>;rt="core.rd-group"');
+            break;
+          default:
+            response.statusCode = '402'; //bad option
         }
+      }else{
+            response.statusCode = '404'; //not found
+      }
 
-        break;
-      case 'PUT':
-        response.statusCode = '405'; //mothode not allowed
-        break;
-      default:
-        response.statusCode = '404'; //not found
-    }
+      break;
+    case 'PUT':
+      response.statusCode = '405'; //mothode not allowed
+      break;
+    default:
+      response.statusCode = '404'; //not found
+  }
   response.end();
 }
 
@@ -106,9 +88,9 @@ function rd(response,request) {
         if(parameter.lt) //lifetime - optional
           var lifetime = parameter.lt;  //TODO check length and input
         else
-          var lifetime = DEFAULT_TTL; //24hr lifetime standard
+          var lifetime = DEFAULT_TTL // lifetime default
         if(parameter.con) //context - optional
-          value['con'] = parameter.con; //TODO check length and input
+          value['con'] = parameter.con //TODO check length and input
 
         value['rs']= request.payload.toString('utf-8');
         var id = shortId.generate(); //TODO check db for uniqueness?
@@ -118,6 +100,9 @@ function rd(response,request) {
           db.get(id, function (err, value) {
             if (err) return console.log('Failed to read from DB', err) // likely the key was not found
             console.log('Added new entry:',id, value)
+                    //run an index batch
+          console.log('indexing')
+          //indexDb.start()
             })
         })
 
@@ -158,10 +143,10 @@ function edit(response, request, pathname) {
           if(parameter.lt) //lifetime - optional
             var lifetime = parameter.lt  //TODO check length and input
           else
-            var lifetime = DEFAULT_TTL //24hr lifetime standard
+            var lifetime = DEFAULT_TTL // lifetime default
           if(parameter.con) //context - optional
             value['con'] = parameter.con; //TODO check length and input
-          db.put(id,value, { ttl: lifetime }, function (err) { //TODO add parameters
+          db.put(id, value, { ttl: lifetime }, function (err) {
             if (err) return console.log('Failed to write to DB', err) // some kind of I/O error
             db.get(id, function (err, value) {
               if (err) return console.log('Failed to read from DB', err) // likely the key was not found
@@ -190,15 +175,21 @@ function edit(response, request, pathname) {
 function rdgroup(response, request) {
   console.log("Request handler 'rdgroup' was called.");
 
-    response.statusCode = '205';
-    response.end();
+  response.statusCode = '205';
+  response.end();
 }
 
 function rdlookup(response) {
   console.log("Request handler 'rdlookup' was called.");
 
-    response.statusCode = '205';
-    response.end();
+  //get list of documents
+  // indexDb.query(['1234'], function (err, docs){
+    // if (err) return console.log('Failed to search DB', err) // likely the key was not found
+    // console.log('result:',docs)
+  // })
+
+  response.statusCode = '205';
+  response.end();
 }
 
 exports.edit = edit;
