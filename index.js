@@ -28,7 +28,9 @@ function route(handle, pathname, response, request) {
   } else if(S(pathname).startsWith('/rd/')){
     console.log("/rd/ found, searching db")//search db
     requestHandlers.edit(response, request, pathname);
-
+  } else if(S(pathname).startsWith('/rd-lookup/')){
+    console.log("/rd-lookup/ found, searching db")//search db
+    requestHandlers.rdlookup(response, request, pathname);
   }else{
     console.log("No request handler found for " + pathname);
     response.statusCode = '404';

@@ -1,0 +1,42 @@
+{
+  "name": "coap-rd",
+  "version": "0.1.0",
+  "description": "A CoAP Resource Directory Server",
+  "main": "index.js",
+  "dependencies": {
+    "coap": "~0.6.0",
+    "level-inverted-index": "~1.2.8",
+    "byteup": "~0.1.2",
+    "level-sublevel": "~5.2.0",
+    "level-ttl": "~0.5.0",
+    "level": "~0.18.0",
+    "leveldown": "~0.6.2",
+    "string": "~1.8.0",
+    "levelup": "~0.10.0",
+    "shortid": "~2.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JelmerT/coap-rd.git"
+  },
+  "keywords": [
+    "coap",
+    "m2m",
+    "iot",
+    "server",
+    "udp",
+    "internet of things",
+    "resource discovery",
+    "resource directory"
+  ],
+  "author": "Jelmer Tiete",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/JelmerT/coap-rd/issues"
+  },
+  "homepage": "https://github.com/JelmerT/coap-rd"
+}

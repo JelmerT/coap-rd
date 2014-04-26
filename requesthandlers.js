@@ -11,14 +11,22 @@ const   url           = require('url')
       , ttl           = require('level-ttl')
       , shortId       = require('shortid')
       , S             = require('string')
-      , InvertedIndex = require('level-inverted-index')
+      , pairs         = require('pairs')
+      , levelQuery    = require('level-queryengine')
+      , jsonqueryEngine = require('jsonquery-engine')
+
+
 
 // The default time to live of a db entry
-var DEFAULT_TTL = (60 * 60 * 24)
+const DEFAULT_TTL = (60 * 60 * 24)
 
-//    This will create or open the underlying LevelDB store + ttl.
-var db = ttl(level('./db', { valueEncoding: 'json' }))
-//var indexDb = InvertedIndex(db, 'index')
+// This will create or open the underlying LevelDB store + ttl.
+var db = levelQuery(level('./db', { keyEncoding: 'json', valueEncoding: 'json' }))
+// ttl(
+
+db.query.use(jsonqueryEngine());
+// index all pairs of properties
+db.ensureIndex('ep');
 
 function root(response,request) {
   console.log("Request handler 'root' was called.");
@@ -35,22 +43,22 @@ function core(response,request) {
       if(parameter.rt){
         switch (parameter.rt){  //resource type
           case 'core.rd':
-            response.statusCode = '205';
+            response.statusCode = '205'; // content
             response.setOption('Content-Format','application/link-format');
             response.write('</rd>;rt="core.rd"');
             break;
           case 'core.rd-group':
-            response.statusCode = '205';
+            response.statusCode = '205'; // content
             response.setOption('Content-Format','application/link-format');
             response.write('</rd-group>;rt="core.rd-group"');
             break;
           case 'core.rd-lookup':
-            response.statusCode = '205';
+            response.statusCode = '205'; // content
             response.setOption('Content-Format','application/link-format');
             response.write('</rd-lookup>;rt="core.rd-lookup"');
             break;
           case 'core.rd*':
-            response.statusCode = '205';
+            response.statusCode = '205'; // content
             response.setOption('Content-Format','application/link-format');
             response.write('</rd>;rt="core.rd",</rd-lookup>;rt="core.rd-lookup",</rd-group>;rt="core.rd-group"');
             break;
@@ -94,16 +102,13 @@ function rd(response,request) {
 
         value['rs']= request.payload.toString('utf-8');
         var id = shortId.generate(); //TODO check db for uniqueness?
-
-        db.put(id, value, { ttl: lifetime }, function (err) {
+// { ttl: lifetime }
+        db.put(id, value, function (err) {
           if (err) return console.log('Failed to write to DB', err) // some kind of I/O error
           db.get(id, function (err, value) {
             if (err) return console.log('Failed to read from DB', err) // likely the key was not found
             console.log('Added new entry:',id, value)
-                    //run an index batch
-          console.log('indexing')
-          //indexDb.start()
-            })
+          })
         })
 
         response.statusCode = '201'; //created
@@ -146,7 +151,8 @@ function edit(response, request, pathname) {
             var lifetime = DEFAULT_TTL // lifetime default
           if(parameter.con) //context - optional
             value['con'] = parameter.con; //TODO check length and input
-          db.put(id, value, { ttl: lifetime }, function (err) {
+          // , { ttl: lifetime }
+          db.put(id, value, function (err) {
             if (err) return console.log('Failed to write to DB', err) // some kind of I/O error
             db.get(id, function (err, value) {
               if (err) return console.log('Failed to read from DB', err) // likely the key was not found
@@ -179,16 +185,51 @@ function rdgroup(response, request) {
   response.end();
 }
 
-function rdlookup(response) {
+function rdlookup(response, request, pathname) {
   console.log("Request handler 'rdlookup' was called.");
+  switch (request.method){
+    case 'GET': //Search query
+      var queryString = S(pathname).chompLeft('/rd-lookup/').s
+      var parameter = url.parse(request.url, true).query
+      switch (queryString){ //lookup-type - mandatory
+        case 'd': //domain
+          console.log("lookup get domain")
+          db.query({ d: { $ne: '' } })
+            .on('data', console.log)
+            .on('stats', function (stats) {
+            console.log(stats)
+          });
+          response.statusCode = '5.03'; //service unavailable
+          break;
+        case 'ep': //endpoint
+          console.log("lookup get endpoint")
+          if (Object.keys(parameter).length == 0){ // no parameters present, give me all endpoints
+            db.query({ ep: / */i })
+              .on('data', function (data) {
+                console.log(data)
+                // response.write(data)
+              })
+            }
 
-  //get list of documents
-  // indexDb.query(['1234'], function (err, docs){
-    // if (err) return console.log('Failed to search DB', err) // likely the key was not found
-    // console.log('result:',docs)
-  // })
-
-  response.statusCode = '205';
+          response.statusCode = '205'; // content
+          break;
+        case 'res': //resource
+          console.log("lookup get resource")
+          response.statusCode = '5.03'; //service unavailable
+          break;
+        case 'gp': //group
+          console.log("lookup get group")
+          response.statusCode = '5.03'; //service unavailable
+          break;
+        default:
+          response.statusCode = '400'; //bad request
+          break;
+      }
+      break;
+    default:
+      response.statusCode = '400'; //bad request
+      break;
+  }
   response.end();
 }
 
