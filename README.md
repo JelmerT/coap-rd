@@ -7,14 +7,14 @@ The draft can be found [here](http://datatracker.ietf.org/doc/draft-ietf-core-re
 This implementation uses [node-coap](https://github.com/mcollina/node-coap) and [levelDB](https://github.com/Level/level) as key value storage for the different resources.
 
 ## Status
-This is a very basic first implementation. Expect some bugs and missing parts.
+This is a very basic first implementation. Expect lots of bugs and missing parts.
 
 ## Use
 Just start the server with `node index.js`. The server will be started on the standard CoAP port **5683**.
 To run an IPv6 server instead of v4 change `server = coap.createServer()` to `server = coap.createServer({ type: 'udp6' })`
 
 ## Contributions
-Any contribution or feedback is higly appreciated. Just add a pull request or post an issue or send me feedback over Twitter `@jelmt` or email.
+Any contribution or feedback is highly appreciated. Just add a pull request or post an issue or send me feedback over Twitter `@jelmt` or email.
 
 ## License
 Copyright (c) 2013-2014 Jelmer Tiete <jelmer@tiete.be>
